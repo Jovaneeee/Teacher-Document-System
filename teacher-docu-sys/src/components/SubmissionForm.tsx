@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, CheckCircle, Send, Home, Loader2 } from 'lucide-react';
+import { Shield, CheckCircle, Send, Home, Loader2, AlertCircle } from 'lucide-react';
 import FileUpload from './FileUpload';
+import { api, ApiError } from '../lib/api';
+import {
+  ACCEPTED_MIME_TYPES,
+  DOCUMENT_TYPE_OPTIONS,
+  MAX_UPLOAD_BYTES,
+  isDocumentType,
+} from '../lib/documentTypes';
 
 const SubmissionForm = () => {
   const [formData, setFormData] = useState({
@@ -16,14 +23,9 @@ const SubmissionForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-
-  const documentTypes = [
-    'OBAS — Official Business Authorization Slip',
-    'Travel Authority (TO)',
-    'Form 6 — Leave',
-    'Other',
-  ];
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [submitError, setSubmitError] = useState('');
+  const [reference, setReference] = useState('');
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -34,17 +36,15 @@ const SubmissionForm = () => {
 
     if (!formData.documentType) {
       newErrors.documentType = 'Document type is required';
+    } else if (!isDocumentType(formData.documentType)) {
+      newErrors.documentType = 'Please select a valid document type';
     }
 
     if (!selectedFile) {
       newErrors.file = 'Please select a file to upload';
-    } else if (
-      !['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'].includes(
-        selectedFile.type
-      )
-    ) {
+    } else if (!ACCEPTED_MIME_TYPES.includes(selectedFile.type)) {
       newErrors.file = 'Unsupported file format. Please use PDF, JPG, JPEG, or PNG';
-    } else if (selectedFile.size > 10 * 1024 * 1024) {
+    } else if (selectedFile.size > MAX_UPLOAD_BYTES) {
       newErrors.file = 'File size exceeds 10 MB limit';
     }
 
@@ -62,18 +62,37 @@ const SubmissionForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
 
-    if (!validateForm()) {
+    if (!validateForm() || !selectedFile) {
       return;
     }
 
     setIsSubmitting(true);
+    setUploadProgress(0);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await api.createSubmission(
+        {
+          teacherName: formData.fullName.trim(),
+          documentType: formData.documentType,
+          file: selectedFile,
+        },
+        setUploadProgress
+      );
 
-    setIsSubmitting(false);
-    setShowSuccess(true);
+      setReference(response.data?.reference ?? '');
+      setShowSuccess(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : 'We could not submit your document. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleReset = () => {
@@ -86,6 +105,9 @@ const SubmissionForm = () => {
     setTermsAgreed(false);
     setErrors({});
     setShowSuccess(false);
+    setSubmitError('');
+    setReference('');
+    setUploadProgress(0);
   };
 
   const containerVariants = {
@@ -133,7 +155,7 @@ const SubmissionForm = () => {
               transition={{ delay: 0.3 }}
               className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4"
             >
-              Document ready for submission.
+              Document submitted successfully.
             </motion.h2>
 
             <motion.p
@@ -142,8 +164,8 @@ const SubmissionForm = () => {
               transition={{ delay: 0.4 }}
               className="text-base sm:text-lg text-[#475569] mb-6"
             >
-              Your information has been validated successfully. The document is
-              ready to be submitted once the system is connected to the backend.
+              Your document has been securely submitted and is now awaiting
+              administrative review.
             </motion.p>
 
             <motion.div
@@ -153,7 +175,7 @@ const SubmissionForm = () => {
               className="inline-block px-4 py-2 bg-[#EFF6FF] rounded-lg mb-8"
             >
               <p className="text-sm font-medium text-[#2563EB]">
-                Submission Reference: DEMO-0001
+                Submission Reference: {reference}
               </p>
             </motion.div>
 
@@ -338,9 +360,9 @@ const SubmissionForm = () => {
                   }`}
                 >
                   <option value="">Select document type</option>
-                  {documentTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
+                  {DOCUMENT_TYPE_OPTIONS.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
                     </option>
                   ))}
                 </select>
@@ -428,6 +450,41 @@ const SubmissionForm = () => {
                   </motion.p>
                 )}
               </motion.div>
+
+              {/* Upload Progress */}
+              {isSubmitting && uploadProgress > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center justify-between text-sm text-[#475569]">
+                    <span>Uploading document</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-[#2563EB]"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Submission Error */}
+              {submitError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start space-x-2 p-4 rounded-lg border border-red-200 bg-red-50"
+                  role="alert"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-red-700">{submitError}</span>
+                </motion.div>
+              )}
 
               {/* Submit Button */}
               <motion.div variants={itemVariants}>
