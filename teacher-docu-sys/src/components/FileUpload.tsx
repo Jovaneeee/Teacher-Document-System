@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
+import { ACCEPTED_MIME_TYPES, MAX_UPLOAD_BYTES } from '../lib/documentTypes';
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
@@ -10,10 +11,11 @@ interface FileUploadProps {
 
 const FileUpload = ({ onFileSelect, selectedFile, error }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [rejectionError, setRejectionError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const acceptedFormats = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-  const maxFileSize = 10 * 1024 * 1024; // 10 MB
+  const acceptedFormats = ACCEPTED_MIME_TYPES;
+  const maxFileSize = MAX_UPLOAD_BYTES; // 10 MB
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -42,19 +44,23 @@ const FileUpload = ({ onFileSelect, selectedFile, error }: FileUploadProps) => {
 
   const validateAndSetFile = (file: File) => {
     if (!acceptedFormats.includes(file.type)) {
+      setRejectionError('Unsupported file format. Please use PDF, JPG, JPEG, or PNG');
       onFileSelect(null);
       return;
     }
 
     if (file.size > maxFileSize) {
+      setRejectionError('File size exceeds 10 MB limit');
       onFileSelect(null);
       return;
     }
 
+    setRejectionError('');
     onFileSelect(file);
   };
 
   const handleRemove = () => {
+    setRejectionError('');
     onFileSelect(null);
     if (inputRef.current) {
       inputRef.current.value = '';
@@ -166,14 +172,14 @@ const FileUpload = ({ onFileSelect, selectedFile, error }: FileUploadProps) => {
         )}
       </AnimatePresence>
 
-      {error && (
+      {(error || rejectionError) && (
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center space-x-2 text-red-600 text-sm"
         >
           <AlertCircle className="w-4 h-4" />
-          <span>{error}</span>
+          <span>{error || rejectionError}</span>
         </motion.div>
       )}
     </div>

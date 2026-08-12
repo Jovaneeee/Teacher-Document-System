@@ -36,8 +36,21 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for public document submissions
+const submissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 submissions per hour per IP
+  message: {
+    success: false,
+    message: 'Too many submissions. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   loginLimiter,
   forgotPasswordLimiter,
-  authLimiter
+  authLimiter,
+  submissionLimiter
 };

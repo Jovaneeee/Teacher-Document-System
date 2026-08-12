@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const supabase = require("./config/supabase");
 const authRoutes = require("./routes/authRoutes");
+const submissionRoutes = require("./routes/submissionRoutes");
 
 const app = express();
 
@@ -62,6 +63,9 @@ app.get("/api/test-supabase", async (req, res) => {
 
 // Mount authentication routes
 app.use('/api/auth', authRoutes);
+
+// Mount teacher document submission routes
+app.use('/api/submissions', submissionRoutes);
 
 const PORT = process.env.PORT || 5000;
 

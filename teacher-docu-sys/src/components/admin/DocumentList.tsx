@@ -5,9 +5,42 @@ import type { DocumentRecord } from '../../data/adminMockData';
 
 interface DocumentListProps {
   documents: DocumentRecord[];
+  onView?: (id: string) => void;
+  onDownload?: (id: string) => void;
 }
 
-const DocumentList = ({ documents }: DocumentListProps) => {
+const DocumentList = ({ documents, onView, onDownload }: DocumentListProps) => {
+  const viewClassName =
+    'inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline';
+  const downloadClassName =
+    'inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline';
+
+  const renderViewAction = (id: string) =>
+    onView ? (
+      <button type="button" onClick={() => onView(id)} className={viewClassName}>
+        <span>View</span>
+        <ArrowUpRight className="w-4 h-4" />
+      </button>
+    ) : (
+      <Link to="/admin/submissions" className={viewClassName}>
+        <span>View</span>
+        <ArrowUpRight className="w-4 h-4" />
+      </Link>
+    );
+
+  const renderDownloadAction = (id: string) =>
+    onDownload ? (
+      <button type="button" onClick={() => onDownload(id)} className={downloadClassName}>
+        <span>Download</span>
+        <ArrowDown className="w-4 h-4" />
+      </button>
+    ) : (
+      <Link to="/admin/documents" className={downloadClassName}>
+        <span>Download</span>
+        <ArrowDown className="w-4 h-4" />
+      </Link>
+    );
+
   const getStatusBadge = (status: string) => {
     if (status === 'Pending') {
       return (
@@ -88,20 +121,8 @@ const DocumentList = ({ documents }: DocumentListProps) => {
                   {getStatusBadge(document.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <Link
-                    to="/admin/submissions"
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
-                  >
-                    <span>View</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                to="/admin/documents"
-                className="inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline"
-              >
-                <span>Download</span>
-                <ArrowDown className="w-4 h-4" />
-              </Link>
+                  {renderViewAction(document.id)}
+                  {renderDownloadAction(document.id)}
                 </td>
               </motion.tr>
             ))}
@@ -141,13 +162,10 @@ const DocumentList = ({ documents }: DocumentListProps) => {
             </div>
             <div className="flex items-center justify-between">
               {getStatusBadge(document.status)}
-              <Link
-                to="/admin/submissions"
-                className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
-              >
-                <span>View</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
+              <div className="flex items-center space-x-4">
+                {renderViewAction(document.id)}
+                {renderDownloadAction(document.id)}
+              </div>
             </div>
           </motion.div>
         ))}
