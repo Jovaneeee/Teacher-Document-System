@@ -1,4 +1,5 @@
 const supabase = require("../config/supabase");
+const { sendPasswordResetEmail } = require("../services/emailService");
 
 // Helper function to validate email format
 const isValidEmail = (email) => {
@@ -111,13 +112,42 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Request password reset from Supabase
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL}/admin/reset-password`
+    // Generate password reset link using Supabase
+    // This creates a recovery token without sending an email
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${process.env.FRONTEND_URL}/admin/reset-password`
+      }
     });
 
+    if (error) {
+      console.error("Supabase generate link error:", error.message);
+      // Still return success to prevent account enumeration
+      res.json({
+        success: true,
+        message: "If an account exists for this email, password reset instructions have been sent."
+      });
+      return;
+    }
+
+    // Send custom email via Gmail SMTP with the recovery link
+    if (data && data.properties?.action_link) {
+      try {
+        await sendPasswordResetEmail(email, data.properties.action_link);
+      } catch (emailError) {
+        console.error("Failed to send password reset email via Gmail SMTP:", emailError.message);
+        // Still return success to prevent account enumeration
+        res.json({
+          success: true,
+          message: "If an account exists for this email, password reset instructions have been sent."
+        });
+        return;
+      }
+    }
+
     // Always return success to prevent account enumeration
-    // Even if email doesn't exist, we don't reveal that
     res.json({
       success: true,
       message: "If an account exists for this email, password reset instructions have been sent."

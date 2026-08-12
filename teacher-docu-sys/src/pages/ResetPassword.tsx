@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, FolderOpen, LockKeyhole, Eye, EyeOff, CheckCircle, Loader2, Check, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client once, outside the component, so it isn't
+// recreated on every render (and doesn't retrigger effects that depend on it).
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Session-check states: 'checking' (verifying the recovery link),
+// 'valid' (recovery session established, show the form),
+// 'invalid' (missing/expired/bad token).
+type TokenStatus = 'checking' | 'valid' | 'invalid';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const { changePassword } = useAuth();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     newPassword: '',
@@ -16,6 +27,7 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>('checking');
 
   const passwordRequirements = {
     minLength: formData.newPassword.length >= 8,
@@ -25,6 +37,84 @@ const ResetPassword = () => {
   };
 
   const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
+
+  // Establish the Supabase recovery session from the URL hash fragment.
+  // Supabase redirects here as:
+  //   /admin/reset-password#access_token=...&refresh_token=...&type=recovery
+  // NOT as query params, so useSearchParams() can't see them — we must
+  // read window.location.hash directly.
+  useEffect(() => {
+    let isMounted = true;
+
+    const establishRecoverySession = async () => {
+      try {
+        const hash = window.location.hash;
+
+        if (!hash || hash.length < 2) {
+          if (isMounted) {
+            setTokenStatus('invalid');
+            setErrors({
+              submit: 'Invalid or expired password reset link. Please request a new password reset.',
+            });
+          }
+          return;
+        }
+
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+
+        // Basic sanity check — must look like a recovery link with both tokens.
+        if (!accessToken || !refreshToken || type !== 'recovery') {
+          if (isMounted) {
+            setTokenStatus('invalid');
+            setErrors({
+              submit: 'Invalid or expired password reset link. Please request a new password reset.',
+            });
+          }
+          return;
+        }
+
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        // Strip the tokens out of the visible URL immediately so they aren't
+        // left sitting in the address bar / browser history.
+        window.history.replaceState(null, '', window.location.pathname);
+
+        if (!isMounted) return;
+
+        if (error) {
+          // Never log the error object as-is if it could contain token data;
+          // just log a generic message.
+          console.error('Failed to establish password recovery session.');
+          setTokenStatus('invalid');
+          setErrors({
+            submit: 'Invalid or expired password reset link. Please request a new password reset.',
+          });
+          return;
+        }
+
+        setTokenStatus('valid');
+      } catch {
+        if (isMounted) {
+          setTokenStatus('invalid');
+          setErrors({
+            submit: 'Invalid or expired password reset link. Please request a new password reset.',
+          });
+        }
+      }
+    };
+
+    establishRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -52,17 +142,39 @@ const ResetPassword = () => {
       return;
     }
 
+    if (tokenStatus !== 'valid') {
+      setErrors({
+        submit: 'Invalid or expired password reset link. Please request a new password reset.',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setErrors({});
 
     try {
-      await changePassword(formData.newPassword);
+      // Update password using Supabase with the recovery session established above.
+      const { error } = await supabase.auth.updateUser({
+        password: formData.newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setIsSuccess(true);
-      // Clear password fields after successful submission
+      // Clear password fields after successful submission.
       setFormData({ newPassword: '', confirmPassword: '' });
+
+      // Sign out of the temporary recovery session and send the admin to
+      // log in fresh with their new password after a short success state.
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        navigate('/admin/login');
+      }, 2000);
     } catch (error: any) {
       setErrors({
-        submit: error.message || 'Failed to update password. Please try again.'
+        submit: error.message || 'Failed to update password. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -183,7 +295,14 @@ const ResetPassword = () => {
             <p className="text-sm text-[#64748B] uppercase tracking-wide">ADMINISTRATOR ACCESS</p>
           </div>
 
-          {!isSuccess ? (
+          {tokenStatus === 'checking' ? (
+            /* Loading State — avoids briefly flashing an "invalid token" error
+               while the recovery session is still being established. */
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Loader2 className="w-8 h-8 text-[#0F2A43] animate-spin mb-4" />
+              <p className="text-[#475569]">Verifying your reset link...</p>
+            </div>
+          ) : !isSuccess ? (
             <>
               {/* Welcome */}
               <motion.div
@@ -225,12 +344,13 @@ const ResetPassword = () => {
                       type={showNewPassword ? 'text' : 'password'}
                       id="newPassword"
                       value={formData.newPassword}
+                      disabled={tokenStatus !== 'valid'}
                       onChange={(e) => {
                         setFormData({ ...formData, newPassword: e.target.value });
                         if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
                       }}
                       placeholder="Enter your new password"
-                      className={`w-full pl-10 pr-12 px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white ${
+                      className={`w-full pl-10 pr-12 px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white disabled:opacity-50 disabled:cursor-not-allowed ${
                         errors.newPassword
                           ? 'border-red-300 bg-red-50'
                           : 'border-slate-300 focus:border-[#2563EB]'
@@ -338,12 +458,13 @@ const ResetPassword = () => {
                       type={showConfirmPassword ? 'text' : 'password'}
                       id="confirmPassword"
                       value={formData.confirmPassword}
+                      disabled={tokenStatus !== 'valid'}
                       onChange={(e) => {
                         setFormData({ ...formData, confirmPassword: e.target.value });
                         if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
                       }}
                       placeholder="Confirm your new password"
-                      className={`w-full pl-10 pr-12 px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white ${
+                      className={`w-full pl-10 pr-12 px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white disabled:opacity-50 disabled:cursor-not-allowed ${
                         errors.confirmPassword
                           ? 'border-red-300 bg-red-50'
                           : formData.confirmPassword && formData.newPassword === formData.confirmPassword
@@ -397,7 +518,7 @@ const ResetPassword = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || tokenStatus !== 'valid'}
                   className="w-full bg-[#0F2A43] hover:bg-[#0a1f33] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSubmitting ? (
@@ -459,13 +580,13 @@ const ResetPassword = () => {
                   Password updated
                 </h2>
                 <p className="text-[#475569] mb-6">
-                  Your administrator password has been updated successfully.
+                  Your administrator password has been updated successfully. Redirecting you to sign in...
                 </p>
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/admin')}
+                  onClick={() => navigate('/admin/login')}
                   className="w-full bg-[#0F2A43] hover:bg-[#0a1f33] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
                 >
                   Return to Admin Login
