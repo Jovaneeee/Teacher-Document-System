@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   FileText,
   User,
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface NavItem {
   label: string;
@@ -21,6 +22,13 @@ interface NavItem {
 const AdminSidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/admin');
+  };
 
   const mainNavItems: NavItem[] = [
     { label: 'Overview', icon: LayoutDashboard, href: '/admin/dashboard' },
@@ -100,13 +108,13 @@ const AdminSidebar = () => {
               <p className="text-xs text-[#64748B] truncate">Admin</p>
             </div>
           </div>
-          <Link
-            to="/admin"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-[#475569] hover:bg-slate-100 hover:text-[#0F172A] transition-colors duration-200"
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-[#475569] hover:bg-slate-100 hover:text-[#0F172A] transition-colors duration-200 w-full"
           >
             <LogOut className="w-5 h-5" />
             <span>Sign out</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -191,14 +199,16 @@ const AdminSidebar = () => {
                       <p className="text-xs text-[#64748B] truncate">Admin</p>
                     </div>
                   </div>
-                  <Link
-                    to="/admin"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-[#475569] hover:bg-slate-100 hover:text-[#0F172A] transition-colors duration-200"
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-[#475569] hover:bg-slate-100 hover:text-[#0F172A] transition-colors duration-200 w-full"
                   >
                     <LogOut className="w-5 h-5" />
                     <span>Sign out</span>
-                  </Link>
+                  </button>
                 </div>
               </div>
             </motion.aside>

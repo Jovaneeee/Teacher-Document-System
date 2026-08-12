@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, FolderOpen, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,8 +27,6 @@ const AdminLogin = () => {
 
     if (!formData.password) {
       newErrors.password = 'Please enter your password.';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters.';
     }
 
     setErrors(newErrors);
@@ -41,12 +41,18 @@ const AdminLogin = () => {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
-    // Demo login behavior - will be replaced with Supabase Auth
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    navigate('/admin/dashboard');
+    try {
+      await login(formData.email, formData.password);
+      navigate('/admin/dashboard');
+    } catch (error: any) {
+      setErrors({
+        submit: error.message || 'Invalid email or password.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const containerVariants = {
@@ -290,12 +296,13 @@ const AdminLogin = () => {
                 />
                 <span className="text-sm text-[#475569]">Remember me</span>
               </label>
-              <a
-                href="#forgot-password"
+              <button
+                type="button"
+                onClick={() => navigate('/admin/forgot-password')}
                 className="text-sm text-[#2563EB] hover:underline"
               >
                 Forgot password?
-              </a>
+              </button>
             </motion.div>
 
             {/* Sign In Button */}
@@ -318,6 +325,17 @@ const AdminLogin = () => {
                 'Sign In'
               )}
             </motion.button>
+
+            {/* Submit Error */}
+            {errors.submit && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-600 text-center"
+              >
+                {errors.submit}
+              </motion.p>
+            )}
           </form>
 
           {/* Footer */}
