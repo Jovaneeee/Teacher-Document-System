@@ -18,7 +18,7 @@ const Footer = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-white font-semibold text-base sm:text-lg leading-tight">
-                    Document Submission Portal
+                    HRIS Document Approval System
                   </span>
                 </div>
               </div>
@@ -67,7 +67,7 @@ const Footer = () => {
         <div className="border-t border-white/10 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-sm text-[#CBD5E1]">
-              © {currentYear} Document Submission Portal. All rights reserved.
+              © {currentYear} HRIS Document Approval System. All rights reserved.
             </p>
             <div className="flex items-center space-x-6">
               <Link

@@ -122,10 +122,7 @@ const PrivacyPolicy = () => {
         <p className="text-[#475569] leading-relaxed">
           Submitted documents and information may be retained only as long as
           necessary for the intended administrative purpose or according to
-          applicable school or office practices.{' '}
-          <span className="font-medium text-[#0F172A]">
-            [Insert applicable retention period or practice]
-          </span>
+          applicable school or office practices.
         </p>
       ),
     },

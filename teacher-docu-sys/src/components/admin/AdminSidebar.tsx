@@ -77,7 +77,7 @@ const AdminSidebar = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-[#0F172A] font-semibold text-sm leading-tight">
-                Teacher Document Portal
+                HRIS Document Approval System
               </span>
             </div>
           </Link>

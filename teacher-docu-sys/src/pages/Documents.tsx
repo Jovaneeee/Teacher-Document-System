@@ -84,7 +84,7 @@ const Documents = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Documents" subtitle="Teacher Document Portal">
+      <AdminLayout title="Documents" subtitle="HRIS Document Approval System">
         <div className="flex items-center justify-center h-64">
           <div className="text-[#64748B]">Loading documents...</div>
         </div>
@@ -93,7 +93,7 @@ const Documents = () => {
   }
 
   return (
-    <AdminLayout title="Documents" subtitle="Teacher Document Portal">
+    <AdminLayout title="Documents" subtitle="HRIS Document Approval System">
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

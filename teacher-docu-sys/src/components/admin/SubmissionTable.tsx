@@ -104,7 +104,7 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
-                Teacher
+                Employee
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
                 Document Type

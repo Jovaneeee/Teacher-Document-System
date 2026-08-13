@@ -78,7 +78,7 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Overview" subtitle="Teacher Document Portal">
+      <AdminLayout title="Overview" subtitle="HRIS Document Approval System">
         <div className="flex items-center justify-center h-64">
           <div className="text-[#64748B]">Loading dashboard...</div>
         </div>
@@ -87,7 +87,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <AdminLayout title="Overview" subtitle="Teacher Document Portal">
+    <AdminLayout title="Overview" subtitle="HRIS Document Approval System">
       {/* Dashboard Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

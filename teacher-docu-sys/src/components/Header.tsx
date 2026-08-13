@@ -57,7 +57,7 @@ const Header = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-[#0F172A] font-semibold text-base sm:text-lg leading-tight">
-                  Document Submission Portal
+                  HRIS Document Approval System
                 </span>
               </div>
             </div>
@@ -196,10 +196,7 @@ const Header = () => {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[#0F172A] font-semibold text-xs">
-                        Lincoln High School
-                      </span>
-                      <span className="text-[#475569] text-xs">
-                        Document Submission Portal
+                       HRIS Document Approval System
                       </span>
                     </div>
                   </div>

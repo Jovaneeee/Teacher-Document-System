@@ -61,7 +61,7 @@ const Submissions = () => {
   };
 
   return (
-    <AdminLayout title="Submissions" subtitle="Teacher Document Portal">
+    <AdminLayout title="Submissions" subtitle="HRIS Document Approval System">
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
