@@ -108,7 +108,6 @@ const AdminDashboard = () => {
               workspace.
             </p>
           </div>
-          <div className="text-sm text-[#64748B]">August 2026</div>
         </div>
       </motion.div>
 
