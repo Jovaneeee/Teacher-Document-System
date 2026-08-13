@@ -8,10 +8,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { SubmissionActivity } from '../../data/adminMockData';
+
+interface DocumentTypeData {
+  name: string;
+  count: number;
+}
 
 interface SubmissionActivityChartProps {
-  data: SubmissionActivity[];
+  data: DocumentTypeData[];
 }
 
 const SubmissionActivityChart = ({ data }: SubmissionActivityChartProps) => {
@@ -24,10 +28,10 @@ const SubmissionActivityChart = ({ data }: SubmissionActivityChartProps) => {
     >
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          Submission Activity
+          Submissions by Document Type
         </h2>
         <p className="text-sm text-[#64748B]">
-          Document submissions over the past six months
+          Distribution of submitted documents by type.
         </p>
       </div>
       <div className="h-64">
@@ -39,7 +43,7 @@ const SubmissionActivityChart = ({ data }: SubmissionActivityChartProps) => {
               stroke="#E2E8F0"
             />
             <XAxis
-              dataKey="month"
+              dataKey="name"
               axisLine={false}
               tickLine={false}
               tick={{ fill: '#64748B', fontSize: 12 }}
@@ -59,7 +63,7 @@ const SubmissionActivityChart = ({ data }: SubmissionActivityChartProps) => {
               itemStyle={{ color: '#FFFFFF' }}
             />
             <Bar
-              dataKey="submissions"
+              dataKey="count"
               fill="#2563EB"
               radius={[4, 4, 0, 0]}
             />

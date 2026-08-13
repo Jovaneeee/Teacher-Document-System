@@ -2,9 +2,10 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const supabase = require("./config/supabase");
+const { supabase } = require("./config/supabase");
 const authRoutes = require("./routes/authRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -68,6 +69,11 @@ app.use('/api/auth', authRoutes);
 console.log('Mounting submission routes...');
 app.use('/api/submissions', submissionRoutes);
 console.log('Submission routes mounted');
+
+// Mount admin routes
+console.log('Mounting admin routes...');
+app.use('/api/admin', adminRoutes);
+console.log('Admin routes mounted');
 
 const PORT = process.env.PORT || 5000;
 

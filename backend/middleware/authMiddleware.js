@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+const { supabaseAuth } = require("../config/supabase");
 
 // Middleware to require admin authentication
 const requireAdminAuth = async (req, res, next) => {
@@ -24,7 +24,7 @@ const requireAdminAuth = async (req, res, next) => {
     }
 
     // Verify token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({
@@ -87,7 +87,7 @@ const requireAuth = async (req, res, next) => {
     }
 
     // Verify token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({

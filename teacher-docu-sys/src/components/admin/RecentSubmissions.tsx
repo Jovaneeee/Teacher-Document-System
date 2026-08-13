@@ -1,26 +1,24 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-
-type SubmissionStatus = 'Pending' | 'Reviewed';
-
-interface Submission {
-  id: string;
-  teacher: string;
-  documentType: string;
-  submitted: string;
-  status: SubmissionStatus;
-}
 
 interface RecentSubmissionsProps {
-  submissions: Submission[];
+  submissions: any[];
+  onRefresh?: () => void;
 }
 
-const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
-  const getStatusBadge = (status: SubmissionStatus) => {
-    if (status === 'Pending') {
+const RecentSubmissions = ({ submissions, onRefresh }: RecentSubmissionsProps) => {
+  const getStatusBadge = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus === 'pending') {
       return (
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
           Pending
+        </span>
+      );
+    }
+    if (normalizedStatus === 'rejected') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+          Rejected
         </span>
       );
     }
@@ -30,6 +28,48 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
       </span>
     );
   };
+
+  const handleView = async (id: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${id}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        window.open(data.url, '_blank');
+        if (onRefresh) onRefresh();
+      }
+    } catch (error) {
+      console.error('Error viewing document:', error);
+    }
+  };
+
+  const formatDocumentType = (type: string) => {
+    if (type === 'OBAS') return 'OBAS';
+    if (type === 'TRAVEL_AUTHORITY') return 'Travel Authority (TO)';
+    if (type === 'FORM_6') return 'Form 6 — Leave';
+    return type;
+  };
+
+  if (submissions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="bg-white rounded-xl border border-slate-200 p-6"
+      >
+        <p className="text-sm text-[#64748B] text-center">No submissions yet</p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -61,8 +101,8 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
               <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[#64748B] uppercase tracking-wider">
-                Action
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+                Actions
               </th>
             </tr>
           </thead>
@@ -82,7 +122,7 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-[#475569]">
-                    {submission.documentType}
+                    {formatDocumentType(submission.documentType)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -93,13 +133,13 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getStatusBadge(submission.status)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <Link
-                    to={`/admin/submissions/${submission.id}`}
-                    className="inline-flex items-center text-sm font-medium text-[#2563EB] hover:underline"
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleView(submission.id)}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                   >
                     View
-                  </Link>
+                  </button>
                 </td>
               </motion.tr>
             ))}
@@ -123,7 +163,7 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
                   {submission.teacher}
                 </p>
                 <p className="text-sm text-[#475569] mt-1">
-                  {submission.documentType}
+                  {formatDocumentType(submission.documentType)}
                 </p>
               </div>
               {getStatusBadge(submission.status)}
@@ -132,12 +172,12 @@ const RecentSubmissions = ({ submissions }: RecentSubmissionsProps) => {
               <p className="text-xs text-[#64748B]">
                 {submission.submitted}
               </p>
-              <Link
-                to={`/admin/submissions/${submission.id}`}
-                className="inline-flex items-center text-sm font-medium text-[#2563EB] hover:underline"
+              <button
+                onClick={() => handleView(submission.id)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 View
-              </Link>
+              </button>
             </div>
           </motion.div>
         ))}

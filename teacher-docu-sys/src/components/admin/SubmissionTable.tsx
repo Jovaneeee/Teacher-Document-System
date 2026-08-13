@@ -1,19 +1,27 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, ArrowUpRight, ArrowDown } from 'lucide-react';
-import type { Submission } from '../../data/adminMockData';
+import { FileText, Clock, CheckCircle, ArrowUpRight, ArrowDown, CircleX } from 'lucide-react';
 
 interface SubmissionTableProps {
-  submissions: Submission[];
+  submissions: any[];
+  onRefresh?: () => void;
 }
 
-const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
+const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
   const getStatusBadge = (status: string) => {
-    if (status === 'Pending') {
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus === 'pending') {
       return (
         <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
           <Clock className="w-3 h-3" />
           <span>Pending</span>
+        </span>
+      );
+    }
+    if (normalizedStatus === 'rejected') {
+      return (
+        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+          <CircleX className="w-3 h-3" />
+          <span>Rejected</span>
         </span>
       );
     }
@@ -24,6 +32,69 @@ const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
       </span>
     );
   };
+
+  const handleView = async (id: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${id}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        window.open(data.url, '_blank');
+        if (onRefresh) onRefresh();
+      }
+    } catch (error) {
+      console.error('Error viewing document:', error);
+    }
+  };
+
+  const handleDownload = async (id: string, filename: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        const link = document.createElement('a');
+        link.href = data.url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+    }
+  };
+
+  const formatDocumentType = (type: string) => {
+    if (type === 'OBAS') return 'OBAS';
+    if (type === 'TRAVEL_AUTHORITY') return 'Travel Authority (TO)';
+    if (type === 'FORM_6') return 'Form 6 — Leave';
+    return type;
+  };
+
+  if (submissions.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6">
+        <p className="text-sm text-[#64748B] text-center">No submissions found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -68,7 +139,7 @@ const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-[#475569]">
-                    {submission.documentType}
+                    {formatDocumentType(submission.type)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -88,20 +159,20 @@ const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <Link
-                    to="/admin/documents"
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
+                  <button
+                    onClick={() => handleView(submission.id)}
+                    className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline mr-3"
                   >
                     <span>View</span>
                     <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                to="/admin/documents"
-                className="inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline"
-              >
-                <span>Download</span>
-                <ArrowDown className="w-4 h-4" />
-              </Link>
+                  </button>
+                  <button
+                    onClick={() => handleDownload(submission.id, submission.filename)}
+                    className="inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline"
+                  >
+                    <span>Download</span>
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
                 </td>
               </motion.tr>
             ))}
@@ -125,7 +196,7 @@ const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
                   {submission.teacher}
                 </p>
                 <p className="text-sm text-[#475569] mt-1">
-                  {submission.documentType}
+                  {formatDocumentType(submission.type)}
                 </p>
               </div>
               {getStatusBadge(submission.status)}
@@ -138,13 +209,13 @@ const SubmissionTable = ({ submissions }: SubmissionTableProps) => {
             </div>
             <div className="flex items-center justify-between">
               <p className="text-xs text-[#64748B]">{submission.submitted}</p>
-              <Link
-                to="/admin/documents"
+              <button
+                onClick={() => handleView(submission.id)}
                 className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
               >
                 <span>View</span>
                 <ArrowUpRight className="w-4 h-4" />
-              </Link>
+              </button>
             </div>
           </motion.div>
         ))}

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Files, Clock, CircleCheck, TrendingUp } from 'lucide-react';
+import { Files, Clock, CircleCheck, TrendingUp, CircleX } from 'lucide-react';
 import type { DashboardStat } from '../../data/adminMockData';
 
 interface StatCardProps {
@@ -12,6 +12,7 @@ const iconMap = {
   Clock,
   CircleCheck,
   TrendingUp,
+  CircleX,
 };
 
 const StatCard = ({ stat, delay = 0 }: StatCardProps) => {

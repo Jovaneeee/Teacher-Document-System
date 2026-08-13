@@ -1,10 +1,65 @@
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../components/admin/AdminLayout';
 import SubmissionFilters from '../components/admin/SubmissionFilters';
 import SubmissionTable from '../components/admin/SubmissionTable';
-import { allSubmissions } from '../data/adminMockData';
 
 const Submissions = () => {
+  const [loading, setLoading] = useState(true);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    documentType: 'all',
+    dateRange: 'all'
+  });
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [filters]);
+
+  const fetchSubmissions = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      if (filters.status !== 'all') params.append('status', filters.status);
+      if (filters.documentType !== 'all') params.append('document_type', filters.documentType);
+      if (filters.dateRange !== 'all') params.append('date_range', filters.dateRange);
+      if (filters.search.trim()) params.append('search', filters.search.trim());
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmissions(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFiltersChange = (newFilters: {
+    search: string;
+    status: string;
+    documentType: string;
+    dateRange: string;
+  }) => {
+    setFilters(newFilters);
+  };
+
   return (
     <AdminLayout title="Submissions" subtitle="Teacher Document Portal">
       {/* Page Header */}
@@ -35,7 +90,7 @@ const Submissions = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <SubmissionFilters />
+        <SubmissionFilters onFiltersChange={handleFiltersChange} />
       </motion.div>
 
       {/* Submission Table */}
@@ -44,7 +99,13 @@ const Submissions = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <SubmissionTable submissions={allSubmissions} />
+        {loading ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <p className="text-sm text-[#64748B] text-center">Loading submissions...</p>
+          </div>
+        ) : (
+          <SubmissionTable submissions={submissions} onRefresh={fetchSubmissions} />
+        )}
       </motion.div>
     </AdminLayout>
   );

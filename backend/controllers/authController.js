@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+const { supabaseAuth } = require("../config/supabase");
 const { sendPasswordResetEmail } = require("../services/emailService");
 
 // Helper function to validate email format
@@ -40,7 +40,7 @@ const login = async (req, res) => {
     }
 
     // Authenticate with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({
       email,
       password
     });
@@ -114,7 +114,7 @@ const forgotPassword = async (req, res) => {
 
     // Generate password reset link using Supabase
     // This creates a recovery token without sending an email
-    const { data, error } = await supabase.auth.admin.generateLink({
+    const { data, error } = await supabaseAuth.auth.admin.generateLink({
       type: 'recovery',
       email: email,
       options: {
@@ -185,7 +185,7 @@ const changePassword = async (req, res) => {
     }
 
     // Update password using Supabase
-    const { error } = await supabase.auth.updateUser({
+    const { error } = await supabaseAuth.auth.updateUser({
       password: newPassword
     });
 
@@ -216,7 +216,7 @@ const logout = async (req, res) => {
     const user = req.user; // Set by requireAdminAuth middleware
 
     // Sign out from Supabase
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseAuth.auth.signOut();
 
     if (error) {
       return res.status(400).json({

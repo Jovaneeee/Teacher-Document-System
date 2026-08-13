@@ -1,11 +1,97 @@
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../components/admin/AdminLayout';
 import DocumentCategoryCard from '../components/admin/DocumentCategoryCard';
 import DocumentList from '../components/admin/DocumentList';
-import { documentCategories, documentRecords } from '../data/adminMockData';
 
 const Documents = () => {
+  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [typeCounts, setTypeCounts] = useState({ OBAS: 0, TRAVEL_AUTHORITY: 0, FORM_6: 0 });
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    documentType: 'all',
+    dateRange: 'all'
+  });
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [filters]);
+
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      if (filters.status !== 'all') params.append('status', filters.status);
+      if (filters.documentType !== 'all') params.append('document_type', filters.documentType);
+      if (filters.dateRange !== 'all') params.append('date_range', filters.dateRange);
+      if (filters.search.trim()) params.append('search', filters.search.trim());
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDocuments(data.data);
+        // Calculate type counts from unfiltered data for category cards
+        const counts = data.data.reduce((acc: any, doc: any) => {
+          if (doc.type === 'OBAS') acc.OBAS++;
+          if (doc.type === 'TRAVEL_AUTHORITY') acc.TRAVEL_AUTHORITY++;
+          if (doc.type === 'FORM_6') acc.FORM_6++;
+          return acc;
+        }, { OBAS: 0, TRAVEL_AUTHORITY: 0, FORM_6: 0 });
+        setTypeCounts(counts);
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const documentCategories = [
+    {
+      name: 'OBAS',
+      count: typeCounts.OBAS,
+      description: 'Official Business / related submissions',
+      icon: 'FileText',
+    },
+    {
+      name: 'Travel Authority (TO)',
+      count: typeCounts.TRAVEL_AUTHORITY,
+      description: 'Travel authority submissions',
+      icon: 'Plane',
+    },
+    {
+      name: 'Form 6 — Leave',
+      count: typeCounts.FORM_6,
+      description: 'Leave-related submissions',
+      icon: 'CalendarDays',
+    },
+  ];
+
+  if (loading) {
+    return (
+      <AdminLayout title="Documents" subtitle="Teacher Document Portal">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-[#64748B]">Loading documents...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout title="Documents" subtitle="Teacher Document Portal">
       {/* Page Header */}
@@ -59,33 +145,59 @@ const Documents = () => {
                 <input
                   type="text"
                   placeholder="Search filename or teacher..."
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm"
                 />
               </div>
             </div>
 
-            {/* Document Type Filter */}
+            {/* Status Filter */}
             <div>
-              <select className="px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm bg-white">
-                <option>Document Type</option>
-                <option>OBAS</option>
-                <option>Travel Authority (TO)</option>
-                <option>Form 6 — Leave</option>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm bg-white"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
 
-            {/* Sort */}
+            {/* Document Type Filter */}
             <div>
-              <select className="px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm bg-white">
-                <option>Newest first</option>
-                <option>Oldest first</option>
+              <select
+                value={filters.documentType}
+                onChange={(e) => setFilters({ ...filters, documentType: e.target.value })}
+                className="px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm bg-white"
+              >
+                <option value="all">Document Type</option>
+                <option value="OBAS">OBAS</option>
+                <option value="TRAVEL_AUTHORITY">Travel Authority (TO)</option>
+                <option value="FORM_6">Form 6 — Leave</option>
+              </select>
+            </div>
+
+            {/* Date Filter */}
+            <div>
+              <select
+                value={filters.dateRange}
+                onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+                className="px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm bg-white"
+              >
+                <option value="all">All Time</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="this_year">This Year</option>
               </select>
             </div>
           </div>
         </div>
 
         {/* Document List */}
-        <DocumentList documents={documentRecords} />
+        <DocumentList documents={documents} onRefresh={fetchDocuments} />
       </motion.div>
     </AdminLayout>
   );
