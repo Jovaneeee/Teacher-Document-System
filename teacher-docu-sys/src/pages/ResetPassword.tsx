@@ -551,7 +551,7 @@ const ResetPassword = () => {
                 className="mt-6"
               >
                 <button
-                  onClick={() => navigate('/admin')}
+                  onClick={() => navigate('/admin/login')}
                   className="text-sm text-[#475569] hover:text-[#2563EB] transition-colors duration-200"
                 >
                   ← Back to Admin Login

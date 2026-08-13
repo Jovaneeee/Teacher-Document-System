@@ -256,7 +256,7 @@ const ForgotPassword = () => {
                 className="mt-6"
               >
                 <button
-                  onClick={() => navigate('/admin')}
+                  onClick={() => navigate('/admin/login')}
                   className="text-sm text-[#475569] hover:text-[#2563EB] transition-colors duration-200"
                 >
                   ← Back to Admin Login
@@ -296,7 +296,7 @@ const ForgotPassword = () => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/admin')}
+                  onClick={() => navigate('/admin/login')}
                   className="text-sm text-[#2563EB] hover:underline transition-colors duration-200"
                 >
                   Back to Admin Login

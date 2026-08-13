@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const supabase = require("./config/supabase");
 const authRoutes = require("./routes/authRoutes");
+const submissionRoutes = require("./routes/submissionRoutes");
 
 const app = express();
 
@@ -62,6 +63,11 @@ app.get("/api/test-supabase", async (req, res) => {
 
 // Mount authentication routes
 app.use('/api/auth', authRoutes);
+
+// Mount submission routes
+console.log('Mounting submission routes...');
+app.use('/api/submissions', submissionRoutes);
+console.log('Submission routes mounted');
 
 const PORT = process.env.PORT || 5000;
 

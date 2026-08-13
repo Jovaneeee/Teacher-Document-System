@@ -16,14 +16,21 @@ const SubmissionForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
 
   const documentTypes = [
     'OBAS — Official Business Authorization Slip',
     'Travel Authority (TO)',
     'Form 6 — Leave',
-    'Other',
   ];
+
+  const mapDocumentType = (type: string): string => {
+    if (type.includes('OBAS')) return 'OBAS';
+    if (type.includes('Travel')) return 'TRAVEL_AUTHORITY';
+    if (type.includes('Form 6')) return 'FORM_6';
+    return 'OBAS';
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -68,12 +75,41 @@ const SubmissionForm = () => {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const submissionFormData = new FormData();
+      submissionFormData.append('teacher_name', formData.fullName);
+      submissionFormData.append('document_type', mapDocumentType(formData.documentType));
+      if (selectedFile) {
+        submissionFormData.append('file', selectedFile);
+      }
 
-    setIsSubmitting(false);
-    setShowSuccess(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions`, {
+        method: 'POST',
+        body: submissionFormData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors) {
+          setErrors(data.errors);
+        } else {
+          setErrors({ submit: data.error || 'Submission failed. Please try again.' });
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSubmissionId(data.data.id);
+      setIsSubmitting(false);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Submission error:', error);
+      setErrors({ submit: 'Network error. Please check your connection and try again.' });
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -86,6 +122,7 @@ const SubmissionForm = () => {
     setTermsAgreed(false);
     setErrors({});
     setShowSuccess(false);
+    setSubmissionId(null);
   };
 
   const containerVariants = {
@@ -133,7 +170,7 @@ const SubmissionForm = () => {
               transition={{ delay: 0.3 }}
               className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4"
             >
-              Document ready for submission.
+              Document submitted successfully.
             </motion.h2>
 
             <motion.p
@@ -142,8 +179,7 @@ const SubmissionForm = () => {
               transition={{ delay: 0.4 }}
               className="text-base sm:text-lg text-[#475569] mb-6"
             >
-              Your information has been validated successfully. The document is
-              ready to be submitted once the system is connected to the backend.
+              Your document has been submitted and is pending administrative review.
             </motion.p>
 
             <motion.div
@@ -153,7 +189,7 @@ const SubmissionForm = () => {
               className="inline-block px-4 py-2 bg-[#EFF6FF] rounded-lg mb-8"
             >
               <p className="text-sm font-medium text-[#2563EB]">
-                Submission Reference: DEMO-0001
+                Submission Reference: {submissionId || 'N/A'}
               </p>
             </motion.div>
 
@@ -428,6 +464,17 @@ const SubmissionForm = () => {
                   </motion.p>
                 )}
               </motion.div>
+
+              {/* Submit Error */}
+              {errors.submit && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 border border-red-200 rounded-lg p-4"
+                >
+                  <p className="text-sm text-red-600">{errors.submit}</p>
+                </motion.div>
+              )}
 
               {/* Submit Button */}
               <motion.div variants={itemVariants}>
