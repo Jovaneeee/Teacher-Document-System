@@ -98,27 +98,27 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden lg:block">
-        <table className="w-full">
+      {/* Responsive Table with Horizontal Scroll */}
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[140px]">
                 Employee
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[180px]">
                 Document Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[140px]">
                 Submitted
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[120px]">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[200px]">
                 File
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[180px]">
                 Action
               </th>
             </tr>
@@ -153,7 +153,7 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-[#64748B]" />
-                    <span className="text-sm text-[#475569]">
+                    <span className="text-sm text-[#475569] max-w-[200px] truncate">
                       {submission.filename}
                     </span>
                   </div>
@@ -178,47 +178,6 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="lg:hidden divide-y divide-slate-200">
-        {submissions.map((submission, index) => (
-          <motion.div
-            key={submission.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="p-4"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm font-medium text-[#0F172A]">
-                  {submission.teacher}
-                </p>
-                <p className="text-sm text-[#475569] mt-1">
-                  {formatDocumentType(submission.type)}
-                </p>
-              </div>
-              {getStatusBadge(submission.status)}
-            </div>
-            <div className="flex items-center space-x-2 mb-3">
-              <FileText className="w-4 h-4 text-[#64748B]" />
-              <span className="text-sm text-[#475569]">
-                {submission.filename}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-[#64748B]">{submission.submitted}</p>
-              <button
-                onClick={() => handleView(submission.id)}
-                className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
-              >
-                <span>View</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
       </div>
     </div>
   );

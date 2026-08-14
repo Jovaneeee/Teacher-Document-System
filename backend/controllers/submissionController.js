@@ -255,6 +255,25 @@ const getDashboardStats = async (req, res) => {
     // Clear any auth context to ensure service role is used
     await supabase.auth.signOut();
 
+    // Get document type counts
+    const { data: typeData, error: typeError } = await supabase
+      .from('submissions')
+      .select('document_type');
+
+    if (typeError) {
+      console.error('Error fetching type data:', typeError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch document type statistics'
+      });
+    }
+
+    const typeCounts = {
+      OBAS: typeData.filter(t => t.document_type === 'OBAS').length,
+      TRAVEL_AUTHORITY: typeData.filter(t => t.document_type === 'TRAVEL_AUTHORITY').length,
+      FORM_6: typeData.filter(t => t.document_type === 'FORM_6').length
+    };
+
     // Get total submissions by status
     const { data: statusData, error: statusError } = await supabase
       .from('submissions')
@@ -277,25 +296,6 @@ const getDashboardStats = async (req, res) => {
       pending: statusData.filter(s => s.status === 'pending').length,
       reviewed: statusData.filter(s => s.status === 'reviewed').length,
       rejected: statusData.filter(s => s.status === 'rejected').length
-    };
-
-    // Get document type counts
-    const { data: typeData, error: typeError } = await supabase
-      .from('submissions')
-      .select('document_type');
-
-    if (typeError) {
-      console.error('Error fetching type data:', typeError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch document type statistics'
-      });
-    }
-
-    const typeCounts = {
-      OBAS: typeData.filter(t => t.document_type === 'OBAS').length,
-      TRAVEL_AUTHORITY: typeData.filter(t => t.document_type === 'TRAVEL_AUTHORITY').length,
-      FORM_6: typeData.filter(t => t.document_type === 'FORM_6').length
     };
 
     // Get recent submissions (last 5)
@@ -324,7 +324,8 @@ const getDashboardStats = async (req, res) => {
           documentType: s.document_type,
           status: s.status,
           filename: s.original_file_name,
-          submitted: new Date(s.created_at).toLocaleString()
+          submitted: s.created_at ? new Date(s.created_at).toLocaleString() : 'Unknown time',
+          createdAt: s.created_at
         }))
       }
     });

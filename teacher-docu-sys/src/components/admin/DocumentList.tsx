@@ -90,27 +90,27 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden lg:block">
-        <table className="w-full">
+      {/* Responsive Table with Horizontal Scroll */}
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[900px]">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[200px]">
                 Document
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[140px]">
                 Employee
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[180px]">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[140px]">
                 Submitted
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[120px]">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-semibold text-[#64748B] uppercase tracking-wider min-w-[180px]">
                 Action
               </th>
             </tr>
@@ -127,7 +127,7 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-[#64748B]" />
-                    <span className="text-sm font-medium text-[#0F172A]">
+                    <span className="text-sm font-medium text-[#0F172A] max-w-[200px] truncate">
                       {document.filename}
                     </span>
                   </div>
@@ -170,52 +170,6 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile Cards */}
-      <div className="lg:hidden divide-y divide-slate-200">
-        {documents.map((document, index) => (
-          <motion.div
-            key={document.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="p-4"
-          >
-            <div className="flex items-center space-x-2 mb-3">
-              <FileText className="w-4 h-4 text-[#64748B]" />
-              <span className="text-sm font-medium text-[#0F172A]">
-                {document.filename}
-              </span>
-            </div>
-            <div className="space-y-2 mb-3">
-              <div className="flex justify-between">
-                <span className="text-xs text-[#64748B]">Teacher</span>
-                <span className="text-sm text-[#475569]">{document.teacher}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-[#64748B]">Type</span>
-                <span className="text-sm text-[#475569]">{formatDocumentType(document.type)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-[#64748B]">Submitted</span>
-                <span className="text-sm text-[#475569]">{document.submitted}</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              {getStatusBadge(document.status)}
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => handleView(document.id)}
-                  className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline"
-                >
-                  <span>View</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
       </div>
     </div>
   );
