@@ -59,6 +59,9 @@ const Header = () => {
                 <span className="text-[#0F172A] font-semibold text-base sm:text-lg leading-tight">
                   HRIS Document Approval System
                 </span>
+                <span className="text-[#475569] text-xs">
+                  Impasug-ong National High School - Senior High School
+                </span>
               </div>
             </div>
 

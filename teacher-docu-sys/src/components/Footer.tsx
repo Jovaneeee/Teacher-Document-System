@@ -20,6 +20,9 @@ const Footer = () => {
                   <span className="text-white font-semibold text-base sm:text-lg leading-tight">
                     HRIS Document Approval System
                   </span>
+                  <span className="text-[#CBD5E1] text-xs">
+                  Impasug-ong National High School - Senior High School
+                </span>
                 </div>
               </div>
               <p className="text-sm sm:text-base text-[#CBD5E1] leading-relaxed max-w-sm">

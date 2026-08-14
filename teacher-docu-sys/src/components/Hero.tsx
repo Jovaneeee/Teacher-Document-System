@@ -31,7 +31,7 @@ const Hero = () => {
           >
             <motion.div variants={itemVariants} transition={{ duration: 0.8 }}>
               <span className="inline-block px-3 py-1.5 bg-[#EFF6FF] text-[#2563EB] text-xs sm:text-sm font-semibold rounded-full uppercase tracking-wider">
-                Teacher Document Portal
+                Impasug-ong National High School - Senior High School
               </span>
             </motion.div>
 
