@@ -30,4 +30,7 @@ router.get('/:id/download', requireAdminAuth, submissionController.downloadSubmi
 // PATCH /api/submissions/:id/status - Update submission status (admin only)
 router.patch('/:id/status', requireAdminAuth, submissionController.updateSubmissionStatus);
 
+// DELETE /api/submissions/:id - Delete submission (admin only)
+router.delete('/:id', requireAdminAuth, submissionController.deleteSubmission);
+
 module.exports = router;

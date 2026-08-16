@@ -1,6 +1,7 @@
-import { Search, Bell, User, FileText, ArrowUpRight } from 'lucide-react';
+import { Search, Bell, User, FileText, ArrowUpRight, LogOut, User as UserIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AdminTopbarProps {
   title: string;
@@ -17,8 +18,11 @@ const formatDocumentType = (type: string) => {
 
 const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useAuth();
 
   const notificationCount = recentSubmissions.length;
 
@@ -27,16 +31,19 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfile(false);
+      }
     };
 
-    if (showNotifications) {
+    if (showNotifications || showProfile) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showNotifications]);
+  }, [showNotifications, showProfile]);
 
   const handleNotificationClick = () => {
     navigate('/admin/submissions');
@@ -46,6 +53,22 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
   const handleViewAll = () => {
     navigate('/admin/submissions');
     setShowNotifications(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/admin/login');
+    setShowProfile(false);
+  };
+
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    const emailParts = user.email.split('@')[0];
+    const parts = emailParts.split('.');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return emailParts.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -137,9 +160,61 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
           )}
         </div>
 
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center border border-slate-200">
-          <User className="w-5 h-5 text-[#2563EB]" />
+        {/* Profile */}
+        <div className="relative">
+          <button
+            className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center border border-slate-200 hover:bg-slate-100 transition-colors duration-200"
+            aria-label="Profile"
+            onClick={() => setShowProfile(!showProfile)}
+          >
+            <User className="w-5 h-5 text-[#2563EB]" />
+          </button>
+
+          {/* Profile Dropdown */}
+          {showProfile && (
+            <div ref={profileDropdownRef} className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-slate-200 shadow-lg z-50">
+              {/* Profile Header */}
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center border border-slate-200 mb-3">
+                    <span className="text-xl font-semibold text-[#2563EB]">
+                      {getUserInitials()}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-semibold text-[#0F172A]">
+                    {user?.email?.split('@')[0] || 'Administrator'}
+                  </h3>
+                  <p className="text-sm text-[#64748B] mt-1">
+                    {user?.email || 'admin@email.com'}
+                  </p>
+                  <span className="inline-block mt-2 px-3 py-1 bg-[#EFF6FF] text-[#2563EB] text-xs font-medium rounded-full">
+                    {user?.role == "admin" ? "Administrator" : "User"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Profile Actions */}
+              <div className="p-2">
+                <button
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-50 transition-colors duration-200 text-left"
+                  onClick={() => {
+                    setShowProfile(false);
+                    navigate('/admin/profile');
+                  }}
+                >
+                  <UserIcon className="w-5 h-5 text-[#64748B]" />
+                  <span className="text-sm font-medium text-[#0F172A]">My Profile</span>
+                </button>
+                <button
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 transition-colors duration-200 text-left group"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-5 h-5 text-[#64748B] group-hover:text-red-500" />
+                  <span className="text-sm font-medium text-[#0F172A] group-hover:text-red-500">Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

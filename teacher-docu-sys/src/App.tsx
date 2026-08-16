@@ -14,6 +14,7 @@ import ResetPassword from './pages/ResetPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import Submissions from './pages/Submissions';
 import Documents from './pages/Documents';
+import AdminProfile from './pages/AdminProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function LandingPage() {
@@ -61,6 +62,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Documents />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/profile" 
+            element={
+              <ProtectedRoute>
+                <AdminProfile />
               </ProtectedRoute>
             } 
           />

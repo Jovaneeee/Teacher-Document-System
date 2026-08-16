@@ -109,7 +109,7 @@ const AdminLogin = () => {
             variants={itemVariants}
             className="text-3xl lg:text-4xl font-bold text-white mb-3"
           >
-            Teacher Document Portal
+            HRIS Document Approval System
           </motion.h1>
 
           {/* Heading */}
@@ -164,7 +164,7 @@ const AdminLogin = () => {
           {/* Mobile Heading */}
           <div className="lg:hidden text-center mb-8">
             <h1 className="text-2xl font-bold text-[#0F172A] mb-2">
-              Teacher Document Portal
+              HRIS Document Approval System
             </h1>
             <p className="text-[#475569]">Administrative Workspace</p>
           </div>
@@ -349,7 +349,7 @@ const AdminLogin = () => {
               Authorized personnel only.
             </p>
             <p className="text-xs text-[#64748B]">
-              © 2026 Teacher Document Portal
+              © 2026 HRIS Document Approval System
             </p>
           </motion.div>
         </motion.div>

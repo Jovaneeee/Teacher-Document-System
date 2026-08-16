@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Eye } from 'lucide-react';
 
 interface RecentSubmissionsProps {
   submissions: any[];
@@ -136,9 +137,9 @@ const RecentSubmissions = ({ submissions, onRefresh }: RecentSubmissionsProps) =
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleView(submission.id)}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition-colors duration-200 hover:border-blue-300 hover:bg-blue-100 hover:text-blue-700"
                   >
-                    View
+                    <Eye className="w-4 h-4" />
                   </button>
                 </td>
               </motion.tr>
@@ -174,9 +175,9 @@ const RecentSubmissions = ({ submissions, onRefresh }: RecentSubmissionsProps) =
               </p>
               <button
                 onClick={() => handleView(submission.id)}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="ml-2 inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition-colors duration-200 hover:border-blue-300 hover:bg-blue-100 hover:text-blue-700"
               >
-                View
+                <Eye className="w-4 h-4" />
               </button>
             </div>
           </motion.div>

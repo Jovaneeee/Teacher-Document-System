@@ -627,6 +627,71 @@ const updateSubmissionStatus = async (req, res) => {
   }
 };
 
+/**
+ * Delete a submission
+ */
+const deleteSubmission = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Clear any auth context to ensure service role is used
+    await supabase.auth.signOut();
+
+    // Get submission to retrieve storage path
+    const { data: submission, error: fetchError } = await supabase
+      .from('submissions')
+      .select('storage_path')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found'
+      });
+    }
+
+    // Delete file from storage
+    const { error: storageError } = await supabase.storage
+      .from('teacher-document')
+      .remove([submission.storage_path]);
+
+    if (storageError) {
+      console.error('Error deleting file from storage:', storageError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete file from storage'
+      });
+    }
+
+    // Delete submission record from database
+    const { error: deleteError } = await supabase
+      .from('submissions')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Error deleting submission:', deleteError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete submission'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Submission deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete submission error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while deleting the submission'
+    });
+  }
+};
+
 module.exports = {
   createSubmission,
   testStorageAccess,
@@ -634,5 +699,6 @@ module.exports = {
   getSubmissions,
   viewSubmission,
   downloadSubmission,
-  updateSubmissionStatus
+  updateSubmissionStatus,
+  deleteSubmission
 };

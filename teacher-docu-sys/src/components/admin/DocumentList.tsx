@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { FileText, Clock, CheckCircle, ArrowUpRight, ArrowDown, CircleX } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Clock, CheckCircle, Eye, Download, CircleX, Trash2 } from 'lucide-react';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 interface DocumentListProps {
   documents: any[];
@@ -7,6 +9,9 @@ interface DocumentListProps {
 }
 
 const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
+
   const getStatusBadge = (status: string) => {
     const normalizedStatus = status.toLowerCase();
     if (normalizedStatus === 'pending') {
@@ -81,6 +86,46 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
     }
   };
 
+  const handleDeleteClick = (document: any) => {
+    setDocumentToDelete(document);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${documentToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDeleteDialogOpen(false);
+        setDocumentToDelete(null);
+        if (onRefresh) onRefresh();
+      } else {
+        console.error('Error deleting document:', data.error);
+        alert('Failed to delete document. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document. Please try again.');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setDocumentToDelete(null);
+  };
+
   const formatDocumentType = (type: string) => {
     if (type === 'OBAS') return 'OBAS';
     if (type === 'TRAVEL_AUTHORITY') return 'Travel Authority (TO)';
@@ -153,17 +198,22 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <button
                     onClick={() => handleView(document.id)}
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline mr-3"
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition-colors duration-200 hover:border-blue-300 hover:bg-blue-100 hover:text-blue-700"
                   >
-                    <span>View</span>
-                    <ArrowUpRight className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDownload(document.id, document.filename)}
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline"
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-green-200 bg-green-50 p-2 text-green-600 transition-colors duration-200 hover:border-green-300 hover:bg-green-100 hover:text-green-700"
                   >
-                    <span>Download</span>
-                    <ArrowDown className="w-4 h-4" />
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(document)}
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition-colors duration-200 hover:border-red-300 hover:bg-red-100 hover:text-red-700"
+                    aria-label="Delete document"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
               </motion.tr>
@@ -171,6 +221,18 @@ const DocumentList = ({ documents, onRefresh }: DocumentListProps) => {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        documentInfo={{
+          teacherName: documentToDelete?.teacher || '',
+          documentType: documentToDelete?.type || '',
+          fileName: documentToDelete?.filename || ''
+        }}
+      />
     </div>
   );
 };

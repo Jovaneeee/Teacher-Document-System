@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { FileText, Clock, CheckCircle, ArrowUpRight, ArrowDown, CircleX } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Clock, CheckCircle, Eye, CircleX, Trash2, Download } from 'lucide-react';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 interface SubmissionTableProps {
   submissions: any[];
@@ -7,6 +9,9 @@ interface SubmissionTableProps {
 }
 
 const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<any>(null);
+
   const getStatusBadge = (status: string) => {
     const normalizedStatus = status.toLowerCase();
     if (normalizedStatus === 'pending') {
@@ -79,6 +84,46 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
     } catch (error) {
       console.error('Error downloading document:', error);
     }
+  };
+
+  const handleDeleteClick = (submission: any) => {
+    setSubmissionToDelete(submission);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!submissionToDelete) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${submissionToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDeleteDialogOpen(false);
+        setSubmissionToDelete(null);
+        if (onRefresh) onRefresh();
+      } else {
+        console.error('Error deleting submission:', data.error);
+        alert('Failed to delete document. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      alert('Failed to delete document. Please try again.');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSubmissionToDelete(null);
   };
 
   const formatDocumentType = (type: string) => {
@@ -161,17 +206,23 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <button
                     onClick={() => handleView(submission.id)}
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-[#2563EB] hover:underline mr-3"
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition-colors duration-200 hover:border-blue-300 hover:bg-blue-100 hover:text-blue-700"
                   >
-                    <span>View</span>
-                    <ArrowUpRight className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDownload(submission.id, submission.filename)}
-                    className="inline-flex items-center space-x-1 text-sm font-medium text-green-600 hover:underline"
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-green-200 bg-green-50 p-2 text-green-600 transition-colors duration-200 hover:border-green-300 hover:bg-green-100 hover:text-green-700"
                   >
-                    <span>Download</span>
-                    <ArrowDown className="w-4 h-4" />
+                    <Download className="w-4 h-4" />
+                  </button>
+                 <button
+                    onClick={() => handleDeleteClick(submission)}
+                    className="ml-2 inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition-colors duration-200 hover:border-red-300 hover:bg-red-100 hover:text-red-700"
+                    aria-label="Delete document"
+                    title="Delete document"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </td>
               </motion.tr>
@@ -179,6 +230,18 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        documentInfo={{
+          teacherName: submissionToDelete?.teacher || '',
+          documentType: submissionToDelete?.type || '',
+          fileName: submissionToDelete?.filename || ''
+        }}
+      />
     </div>
   );
 };
