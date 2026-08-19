@@ -298,10 +298,11 @@ const getDashboardStats = async (req, res) => {
       rejected: statusData.filter(s => s.status === 'rejected').length
     };
 
-    // Get recent submissions (last 5)
+    // Get recent submissions (last 5) - only non-deleted notifications
     const { data: recentData, error: recentError } = await supabase
       .from('submissions')
-      .select('id, teacher_name, document_type, status, original_file_name, created_at')
+      .select('id, teacher_name, document_type, status, original_file_name, created_at, is_read, is_notification_deleted')
+      .eq('is_notification_deleted', false)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -325,7 +326,9 @@ const getDashboardStats = async (req, res) => {
           status: s.status,
           filename: s.original_file_name,
           submitted: s.created_at ? new Date(s.created_at).toLocaleString() : 'Unknown time',
-          createdAt: s.created_at
+          createdAt: s.created_at,
+          isRead: s.is_read,
+          isNotificationDeleted: s.is_notification_deleted
         }))
       }
     });
@@ -634,10 +637,33 @@ const deleteSubmission = async (req, res) => {
   try {
     const { id } = req.params;
 
+    console.log('=== DELETE SUBMISSION REQUEST ===');
+    console.log('Submission ID:', id);
+    console.log('Using Supabase client: service-role (should bypass RLS)');
+
+    // Test: Try to fetch without clearing auth first to see if service role works
+    console.log('TEST: Fetching submission without auth signOut...');
+    const { data: testSubmission, error: testError } = await supabase
+      .from('submissions')
+      .select('id, storage_path')
+      .eq('id', id)
+      .single();
+
+    if (testError) {
+      console.error('TEST FETCH FAILED (service role issue?):', testError);
+      console.error('Test error code:', testError?.code);
+      console.error('Test error message:', testError?.message);
+    } else {
+      console.log('TEST FETCH SUCCESS: Service role client is working');
+    }
+
     // Clear any auth context to ensure service role is used
+    console.log('Clearing auth context...');
     await supabase.auth.signOut();
+    console.log('Auth context cleared');
 
     // Get submission to retrieve storage path
+    console.log('Fetching submission to get storage path...');
     const { data: submission, error: fetchError } = await supabase
       .from('submissions')
       .select('storage_path')
@@ -645,38 +671,70 @@ const deleteSubmission = async (req, res) => {
       .single();
 
     if (fetchError || !submission) {
+      console.error('SUBMISSION FETCH ERROR:', fetchError);
+      console.error('Error code:', fetchError?.code);
+      console.error('Error message:', fetchError?.message);
+      console.error('Error details:', fetchError?.details);
+      console.error('Error hint:', fetchError?.hint);
       return res.status(404).json({
         success: false,
-        error: 'Submission not found'
+        error: 'Submission not found',
+        details: fetchError?.message
       });
     }
 
+    console.log('Submission found: true');
+    console.log('Storage path:', submission.storage_path);
+
     // Delete file from storage
+    console.log('Attempting Storage deletion...');
+    console.log('Bucket: teacher-document');
+    console.log('Storage path:', submission.storage_path);
+
     const { error: storageError } = await supabase.storage
       .from('teacher-document')
       .remove([submission.storage_path]);
 
     if (storageError) {
-      console.error('Error deleting file from storage:', storageError);
+      console.error('=== STORAGE DELETE ERROR ===');
+      console.error('Error message:', storageError.message);
+      console.error('Error name:', storageError.name);
+      console.error('Error status:', storageError.statusCode || storageError.status);
+      console.error('Error details:', JSON.stringify(storageError, null, 2));
       return res.status(500).json({
         success: false,
-        error: 'Failed to delete file from storage'
+        error: 'Failed to delete file from storage',
+        details: storageError.message
       });
     }
 
+    console.log('Storage deletion: SUCCESS');
+
     // Delete submission record from database
+    console.log('Attempting database deletion...');
+    console.log('Table: submissions');
+    console.log('Filter: id =', id);
+
     const { error: deleteError } = await supabase
       .from('submissions')
       .delete()
       .eq('id', id);
 
     if (deleteError) {
-      console.error('Error deleting submission:', deleteError);
+      console.error('=== DATABASE DELETE ERROR ===');
+      console.error('Error message:', deleteError.message);
+      console.error('Error code:', deleteError.code);
+      console.error('Error details:', deleteError.details);
+      console.error('Error hint:', deleteError.hint);
+      console.error('Full error object:', JSON.stringify(deleteError, null, 2));
       return res.status(500).json({
         success: false,
-        error: 'Failed to delete submission'
+        error: 'Failed to delete submission',
+        details: deleteError.message
       });
     }
+
+    console.log('Database deletion: SUCCESS');
 
     res.json({
       success: true,
@@ -684,10 +742,100 @@ const deleteSubmission = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete submission error:', error);
+    console.error('=== DELETE SUBMISSION CATCH ERROR ===');
+    console.error('Error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'An error occurred while deleting the submission'
+      error: 'An error occurred while deleting the submission',
+      details: error.message
+    });
+  }
+};
+
+/**
+ * Mark notification as read
+ */
+const markNotificationAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Clear any auth context to ensure service role is used
+    await supabase.auth.signOut();
+
+    // Update is_read to true
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({ is_read: true })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Error marking notification as read:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to mark notification as read'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: data.id,
+        isRead: data.is_read
+      }
+    });
+
+  } catch (error) {
+    console.error('Mark notification as read error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while marking notification as read'
+    });
+  }
+};
+
+/**
+ * Delete notification (soft delete - marks is_notification_deleted)
+ */
+const deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Clear any auth context to ensure service role is used
+    await supabase.auth.signOut();
+
+    // Update is_notification_deleted to true (soft delete)
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({ is_notification_deleted: true })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Error deleting notification:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete notification'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: data.id,
+        isNotificationDeleted: data.is_notification_deleted
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete notification error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while deleting the notification'
     });
   }
 };
@@ -700,5 +848,7 @@ module.exports = {
   viewSubmission,
   downloadSubmission,
   updateSubmissionStatus,
-  deleteSubmission
+  deleteSubmission,
+  markNotificationAsRead,
+  deleteNotification
 };

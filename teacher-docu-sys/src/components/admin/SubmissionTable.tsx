@@ -98,6 +98,10 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
+      console.log('=== DELETE SUBMISSION REQUEST ===');
+      console.log('Submission ID:', submissionToDelete.id);
+      console.log('Submission data:', submissionToDelete);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${submissionToDelete.id}`, {
         method: 'DELETE',
         headers: {
@@ -107,13 +111,16 @@ const SubmissionTable = ({ submissions, onRefresh }: SubmissionTableProps) => {
 
       const data = await response.json();
 
+      console.log('DELETE RESPONSE:', data);
+
       if (data.success) {
         setDeleteDialogOpen(false);
         setSubmissionToDelete(null);
         if (onRefresh) onRefresh();
       } else {
         console.error('Error deleting submission:', data.error);
-        alert('Failed to delete document. Please try again.');
+        console.error('Error details:', data.details);
+        alert(`Failed to delete document: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
       }
     } catch (error) {
       console.error('Error deleting submission:', error);

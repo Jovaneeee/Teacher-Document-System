@@ -1,4 +1,4 @@
-import { Search, Bell, User, FileText, ArrowUpRight, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, Bell, User, FileText, ArrowUpRight, LogOut, User as UserIcon, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,12 +19,21 @@ const formatDocumentType = (type: string) => {
 const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [localSubmissions, setLocalSubmissions] = useState<any[]>(recentSubmissions);
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
-  const notificationCount = recentSubmissions.length;
+  // Update local submissions when prop changes
+  useEffect(() => {
+    setLocalSubmissions(recentSubmissions);
+  }, [recentSubmissions]);
+
+  // Count unread notifications (is_read = false AND is_notification_deleted = false)
+  const notificationCount = localSubmissions.filter(
+    (s) => !s.isRead && !s.isNotificationDeleted
+  ).length;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,7 +54,29 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
     };
   }, [showNotifications, showProfile]);
 
-  const handleNotificationClick = () => {
+  const handleNotificationClick = async (submissionId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      // Mark notification as read
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${submissionId}/notification-read`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Update local state
+      setLocalSubmissions(prev =>
+        prev.map(s =>
+          s.id === submissionId ? { ...s, isRead: true } : s
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+
     navigate('/admin/submissions');
     setShowNotifications(false);
   };
@@ -53,6 +84,28 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
   const handleViewAll = () => {
     navigate('/admin/submissions');
     setShowNotifications(false);
+  };
+
+  const handleDeleteNotification = async (e: React.MouseEvent, submissionId: string) => {
+    e.stopPropagation(); // Prevent triggering notification click
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      // Delete notification (soft delete)
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/submissions/${submissionId}/notification-delete`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Remove from local state
+      setLocalSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
   };
 
   const handleLogout = async () => {
@@ -115,38 +168,52 @@ const AdminTopbar = ({ title, subtitle, recentSubmissions = [] }: AdminTopbarPro
                 <h3 className="text-sm font-semibold text-[#0F172A]">Notifications</h3>
               </div>
               
-              {recentSubmissions.length === 0 ? (
+              {localSubmissions.length === 0 ? (
                 <div className="p-4 text-sm text-[#64748B] text-center">
                   No recent submissions
                 </div>
               ) : (
                 <div className="max-h-80 overflow-y-auto">
-                  {recentSubmissions.map((submission) => (
-                    <button
+                  {localSubmissions.map((submission) => (
+                    <div
                       key={submission.id}
-                      onClick={handleNotificationClick}
-                      className="w-full p-4 hover:bg-slate-50 transition-colors duration-200 text-left border-b border-slate-100 last:border-b-0"
+                      className={`w-full p-4 hover:bg-slate-50 transition-colors duration-200 text-left border-b border-slate-100 last:border-b-0 ${
+                        !submission.isRead ? 'bg-slate-50' : 'bg-white'
+                      }`}
                     >
                       <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-4 h-4 text-[#2563EB]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#0F172A] truncate">
-                            New Document Submitted
-                          </p>
-                          <p className="text-xs text-[#475569] mt-0.5">
-                            {formatDocumentType(submission.documentType)}
-                          </p>
-                        </div>
-                        <ArrowUpRight className="w-4 h-4 text-[#64748B] flex-shrink-0" />
+                        <button
+                          onClick={() => handleNotificationClick(submission.id)}
+                          className="flex-1 flex items-start space-x-3 min-w-0"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-4 h-4 text-[#2563EB]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#0F172A] truncate">
+                              New Document Submitted
+                            </p>
+                            <p className="text-xs text-[#475569] mt-0.5">
+                              {submission.teacher ? `${submission.teacher} • ` : ''}
+                              {formatDocumentType(submission.documentType)}
+                            </p>
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-[#64748B] flex-shrink-0" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteNotification(e, submission.id)}
+                          className="p-1.5 rounded hover:bg-red-50 hover:text-red-500 transition-colors duration-200 flex-shrink-0"
+                          aria-label="Delete notification"
+                        >
+                          <Trash2 className="w-4 h-4 text-[#64748B]" />
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
 
-              {recentSubmissions.length > 0 && (
+              {localSubmissions.length > 0 && (
                 <div className="p-3 border-t border-slate-200">
                   <button
                     onClick={handleViewAll}

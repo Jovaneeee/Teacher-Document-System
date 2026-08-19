@@ -12,10 +12,6 @@ interface AdminLayoutProps {
 const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
   const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchRecentSubmissions();
-  }, []);
-
   const fetchRecentSubmissions = async () => {
     try {
       const token = localStorage.getItem('auth_token');
@@ -36,6 +32,10 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
       console.error('Error fetching recent submissions:', error);
     }
   };
+
+  useEffect(() => {
+    fetchRecentSubmissions();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

@@ -30,6 +30,12 @@ router.get('/:id/download', requireAdminAuth, submissionController.downloadSubmi
 // PATCH /api/submissions/:id/status - Update submission status (admin only)
 router.patch('/:id/status', requireAdminAuth, submissionController.updateSubmissionStatus);
 
+// PATCH /api/submissions/:id/notification-read - Mark notification as read (admin only)
+router.patch('/:id/notification-read', requireAdminAuth, submissionController.markNotificationAsRead);
+
+// PATCH /api/submissions/:id/notification-delete - Delete notification (admin only)
+router.patch('/:id/notification-delete', requireAdminAuth, submissionController.deleteNotification);
+
 // DELETE /api/submissions/:id - Delete submission (admin only)
 router.delete('/:id', requireAdminAuth, submissionController.deleteSubmission);
 
